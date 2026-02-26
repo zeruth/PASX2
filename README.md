@@ -1,8 +1,8 @@
-* PCSX2 - Android project
-* EE Recompiler x86 => arm64
-
-* It is still unfinished because I made it while studying due to my lack of experience with assembler.
-* I think it would be good to look at it for reference.
+# PASX2  
+PlayStation 2 Emulator for Android based on the work of [PCSX2](https://github.com/PCSX2/pcsx2) and [pontos2024](https://github.com/pontos2024)  
+This fork gives the pontos2024 project a Gradle / Kotlin / Compose makeover
+  
+- EE Recompiler x86 => arm64 (pontos2024)
 
 * [https://www.youtube.com/watch?v=ACxMJufB1EM](https://youtu.be/hNc3k3wPyTM)
 
