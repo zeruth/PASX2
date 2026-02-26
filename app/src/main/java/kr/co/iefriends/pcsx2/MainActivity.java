@@ -20,7 +20,7 @@ import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.android.material.button.MaterialButton;
+import com.pasx2.R;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -29,8 +29,6 @@ import java.io.InputStream;
 
 public class MainActivity extends AppCompatActivity {
     private String m_szGamefile = "";
-
-    private HIDDeviceManager mHIDDeviceManager;
     private Thread mEmulationThread = null;
 
     private boolean isThread() {
@@ -193,31 +191,18 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         NativeApp.pause();
         super.onPause();
-        ////
-        if (mHIDDeviceManager != null) {
-            mHIDDeviceManager.setFrozen(true);
-        }
     }
 
     @Override
     protected void onResume() {
         NativeApp.resume();
         super.onResume();
-        ////
-        if (mHIDDeviceManager != null) {
-            mHIDDeviceManager.setFrozen(false);
-        }
     }
 
     @Override
     protected void onDestroy() {
         NativeApp.shutdown();
         super.onDestroy();
-        ////
-        if (mHIDDeviceManager != null) {
-            HIDDeviceManager.release(mHIDDeviceManager);
-            mHIDDeviceManager = null;
-        }
         ////
         if (mEmulationThread != null) {
             try {
@@ -241,8 +226,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Initialize state
         SDLControllerManager.initialize();
-
-        mHIDDeviceManager = HIDDeviceManager.acquire(this);
     }
 
     private void setSurfaceView(Object p_value) {
@@ -289,6 +272,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onGenericMotionEvent(event);
     }
 
+    @SuppressLint("GestureBackNavigation")
     @Override
     public boolean onKeyDown(int p_keyCode, KeyEvent p_event) {
         if ((p_event.getSource() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD) {

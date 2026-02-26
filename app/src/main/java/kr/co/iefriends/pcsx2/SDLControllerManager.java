@@ -19,7 +19,7 @@ import java.util.List;
 public class SDLControllerManager
 {
 
-    static native int nativeSetupJNI();
+    public static native int nativeSetupJNI();
 
     static native void nativeAddJoystick(int device_id, String name, String desc,
                                                 int vendor_id, int product_id,
@@ -40,22 +40,16 @@ public class SDLControllerManager
 
     private static final String TAG = "SDLControllerManager";
 
-    static void initialize() {
+    public static void initialize() {
         if (mJoystickHandler == null) {
-            if (Build.VERSION.SDK_INT >= 19 /* Android 4.4 (KITKAT) */) {
-                mJoystickHandler = new SDLJoystickHandler_API19();
-            } else {
-                mJoystickHandler = new SDLJoystickHandler_API16();
-            }
+            mJoystickHandler = new SDLJoystickHandler_API19();
         }
 
         if (mHapticHandler == null) {
             if (Build.VERSION.SDK_INT >= 31 /* Android 12.0 (S) */) {
                 mHapticHandler = new SDLHapticHandler_API31();
-            } else if (Build.VERSION.SDK_INT >= 26 /* Android 8.0 (O) */) {
-                mHapticHandler = new SDLHapticHandler_API26();
             } else {
-                mHapticHandler = new SDLHapticHandler();
+                mHapticHandler = new SDLHapticHandler_API26();
             }
         }
     }
@@ -504,14 +498,18 @@ class SDLHapticHandler_API31 extends SDLHapticHandler {
             return;
         }
 
-        VibratorManager manager = device.getVibratorManager();
-        int[] vibrators = manager.getVibratorIds();
-        if (vibrators.length >= 2) {
-            vibrate(manager.getVibrator(vibrators[0]), low_frequency_intensity, length);
-            vibrate(manager.getVibrator(vibrators[1]), high_frequency_intensity, length);
-        } else if (vibrators.length == 1) {
-            float intensity = (low_frequency_intensity * 0.6f) + (high_frequency_intensity * 0.4f);
-            vibrate(manager.getVibrator(vibrators[0]), intensity, length);
+        VibratorManager manager;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            manager = device.getVibratorManager();
+            int[] vibrators = manager.getVibratorIds();
+
+            if (vibrators.length >= 2) {
+                vibrate(manager.getVibrator(vibrators[0]), low_frequency_intensity, length);
+                vibrate(manager.getVibrator(vibrators[1]), high_frequency_intensity, length);
+            } else if (vibrators.length == 1) {
+                float intensity = (low_frequency_intensity * 0.6f) + (high_frequency_intensity * 0.4f);
+                vibrate(manager.getVibrator(vibrators[0]), intensity, length);
+            }
         }
     }
 

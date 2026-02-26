@@ -7,6 +7,8 @@ import android.view.SurfaceView;
 
 import androidx.annotation.NonNull;
 
+import com.pasx2.Main;
+
 public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback {
     public SDLSurface(Context p_context) {
         super(p_context);
@@ -37,10 +39,7 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback {
     public void surfaceChanged(@NonNull SurfaceHolder p_holder, int p_format, int p_width, int p_height) {
         NativeApp.onNativeSurfaceChanged(p_holder.getSurface(), p_width, p_height);
         ////
-        MainActivity _nativeActivity = (MainActivity) getContext();
-        if(_nativeActivity != null) {
-            _nativeActivity.startEmuThread();
-        }
+        Main.Companion.startEmuThread();
     }
 
     // Called when we lose the surface
