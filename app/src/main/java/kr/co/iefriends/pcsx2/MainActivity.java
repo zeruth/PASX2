@@ -111,10 +111,12 @@ public class MainActivity extends AppCompatActivity {
         });
 
         //////
+/*
         // RENDERER
         configureOnClickListener(R.id.btn_ogl, v -> NativeApp.renderGpu(12));
         configureOnClickListener(R.id.btn_vulkan, v -> NativeApp.renderGpu(14));
         configureOnClickListener(R.id.btn_sw, v -> NativeApp.renderGpu(13));
+*/
 
         //////
         // PAD

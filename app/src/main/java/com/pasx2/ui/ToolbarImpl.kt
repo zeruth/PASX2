@@ -13,7 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.pasx2.ui.toolbar.LoadGameButton
 import com.pasx2.ui.toolbar.PauseButton
+import com.pasx2.ui.toolbar.RenderModeButton
+import com.pasx2.ui.toolbar.RestartButton
 import com.pasx2.ui.toolbar.StartButton
 import com.pasx2.ui.toolbar.StopButton
 import com.pasx2.ui.toolbar.ToolbarButton
@@ -27,7 +30,8 @@ object ToolbarImpl {
     val drawerContext = mutableStateOf<ToolbarButton?>(null)
 
     init {
-        lowerButtons.addAll(arrayOf(StartButton(), PauseButton(), StopButton()))
+        upperButtons.addAll(arrayOf(LoadGameButton(), RenderModeButton()))
+        lowerButtons.addAll(arrayOf(StartButton(), PauseButton(), RestartButton(), StopButton()))
     }
 
     @Composable

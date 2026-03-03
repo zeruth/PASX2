@@ -55,7 +55,9 @@ public class NativeApp {
 	public static native void renderUpscalemultiplier(float value);
 	public static native void renderMipmap(int value);
 	public static native void renderHalfpixeloffset(int value);
-	public static native void renderGpu(int value);
+	public static native void renderSoftware();
+	public static native void renderOpenGL();
+	public static native void renderVulkan();
 	public static native void renderPreloading(int value);
 
 	public static native void onNativeSurfaceCreated();

@@ -2,33 +2,61 @@ package com.pasx2
 
 import android.app.ActivityManager
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.os.Process
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.pasx2.ui.Colors
 import com.pasx2.ui.WindowImpl
+import compose.icons.LineAwesomeIcons
+import compose.icons.lineawesomeicons.Android
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
+import kr.co.iefriends.pcsx2.HIDDeviceManager
 import kr.co.iefriends.pcsx2.MainActivity
 import kr.co.iefriends.pcsx2.NativeApp
 import kr.co.iefriends.pcsx2.SDLControllerManager
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.Executors
+import kotlin.math.min
 
 class SurfaceCallbacks(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
     init {
@@ -37,7 +65,6 @@ class SurfaceCallbacks(context: Context) : SurfaceView(context), SurfaceHolder.C
     override fun surfaceCreated(holder: SurfaceHolder) {}
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
         NativeApp.onNativeSurfaceChanged(holder.surface, width, height)
-        Main.start()
     }
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         NativeApp.onNativeSurfaceChanged(null, 0, 0)
@@ -46,12 +73,15 @@ class SurfaceCallbacks(context: Context) : SurfaceView(context), SurfaceHolder.C
 
 class Main: ComponentActivity() {
     companion object {
+        var instance : Main? = null
         private val eDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-        private val eScope = CoroutineScope(eDispatcher + SupervisorJob())
+        private val eScope = CoroutineScope(eDispatcher)
 
         val surface = mutableStateOf<SurfaceView?>(null)
 
         val eState = mutableStateOf(EmuState.STOPPED)
+
+        val focusRequester = FocusRequester()
 
         private var m_szGamefile = ""
 
@@ -63,48 +93,42 @@ class Main: ComponentActivity() {
 
         fun start() {
             invoke {
-                NativeApp.runVMThread(m_szGamefile)
                 eState.value = EmuState.RUNNING
+                NativeApp.runVMThread(m_szGamefile)
             }
+            WindowImpl.toolbarVisible.value = false
         }
 
         fun pause() {
-            invoke {
-                NativeApp.pause()
-                eState.value = EmuState.PAUSED
-            }
+            NativeApp.pause()
+            eState.value = EmuState.PAUSED
         }
 
         fun resume() {
-            invoke {
-                NativeApp.resume()
-                eState.value = EmuState.RUNNING
-            }
+            NativeApp.resume()
+            eState.value = EmuState.RUNNING
         }
 
         fun stop() {
-            invoke {
-                NativeApp.shutdown()
-                eState.value = EmuState.STOPPED
-            }
+            NativeApp.shutdown()
+            eState.value = EmuState.STOPPED
+        }
+
+        fun restart() {
+            stop()
+            start()
         }
 
         fun renderOpenGL() {
-            invoke {
-                NativeApp.renderGpu(12)
-            }
+            NativeApp.renderOpenGL()
         }
 
         fun renderVulkan() {
-            invoke {
-                NativeApp.renderGpu(14)
-            }
+            NativeApp.renderVulkan()
         }
 
         fun renderSoftware() {
-            invoke {
-                NativeApp.renderGpu(13)
-            }
+            NativeApp.renderSoftware()
         }
 
         fun copyAssetAll(p_context: Context, srcPath: String) {
@@ -132,18 +156,56 @@ class Main: ComponentActivity() {
             val info = am.deviceConfigurationInfo
             return info.glEsVersion.toDouble()
         }
+
+        fun isAndroidEmulator(): Boolean {
+            return Build.MODEL.startsWith("sdk_")
+        }
+    }
+
+    val openFileAction = registerForActivityResult(
+        StartActivityForResult()
+    ) { result: ActivityResult ->
+        if (result.resultCode == RESULT_OK) {
+            try {
+                val intent = result.data
+                if (intent != null) {
+                    m_szGamefile = intent.dataString ?: ""
+                    if (m_szGamefile.isNotEmpty()) {
+                        println(m_szGamefile)
+                        restart()
+                    }
+                }
+            } catch (_: Exception) { }
+        }
+    }
+
+    init {
+        instance = this
+    }
+
+    fun sendKeyAction(p_action: KeyEventType, p_keycode: Int) {
+        if (p_action == KeyEventType.KeyDown) {
+            var pad_force = 0
+            if (p_keycode >= 110) {
+                var _abs = 90f // Joystic test value
+                _abs = min(_abs, 100f)
+                pad_force = (_abs * 32766.0f / 100).toInt()
+            }
+            NativeApp.setPadButton(p_keycode, pad_force, true)
+        } else if (p_action == KeyEventType.KeyUp || p_action == KeyEventType.Unknown) {
+            NativeApp.setPadButton(p_keycode, 0, false)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        surface.value = SurfaceCallbacks(this)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).let { controller ->
             controller.hide(WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
-
-        SurfaceCallbacks(this)
 
        // Default resources
         copyAssetAll(applicationContext, "bios");
@@ -157,28 +219,109 @@ class Main: ComponentActivity() {
 
             // Initialize state
             SDLControllerManager.initialize()
+
+            HIDDeviceManager(applicationContext)
         }
-
-
 
         val glVersion = getSupportedGLESVersion(this)
 
         if (glVersion < 3.2) {
-            println("ERROR: GL VERSION: $glVersion")
-            //renderSoftware()
-/*            eState.value = EmuState.GL_UNSUPPORTED
-            return*/
+            eState.value = EmuState.RENDER_UNSUPPORTED
         }
+
+        if (isAndroidEmulator()) {
+            eState.value = EmuState.EMULATOR_UNSUPPORTED
+        }
+
 
         setContent {
             WindowImpl.Window {
-                Box(Modifier
+                AndroidView(factory = { surface.value!! }, modifier = Modifier
+                    .focusable()
+                    .focusRequester(focusRequester)
                     .fillMaxSize()
-                    .background(Colors.surface.value))
-                surface.value?.let { surfaceView ->
-                    AndroidView(factory = {
-                        surfaceView
-                    }, modifier = Modifier.fillMaxSize())
+                    .pointerInput(Unit) {
+                        detectTapGestures(onLongPress = {
+                            WindowImpl.toolbarVisible.value = !WindowImpl.toolbarVisible.value
+                        })
+                    }
+                    .onKeyEvent { event ->
+                        if (eState.value != EmuState.RUNNING)
+                            return@onKeyEvent false
+                        when (event.key) {
+                            Key.DirectionUp -> {
+                                sendKeyAction(event.type, KeyEvent.KEYCODE_DPAD_UP)
+                                true
+                            }
+                            Key.DirectionDown -> {
+                                sendKeyAction(event.type, KeyEvent.KEYCODE_DPAD_DOWN)
+                                true
+                            }
+                            Key.DirectionLeft -> {
+                                sendKeyAction(event.type, KeyEvent.KEYCODE_DPAD_LEFT)
+                                true
+                            }
+                            Key.DirectionRight -> {
+                                sendKeyAction(event.type, KeyEvent.KEYCODE_DPAD_RIGHT)
+                                true
+                            }
+
+                            Key.ButtonA -> {
+                                sendKeyAction(event.type, KeyEvent.KEYCODE_BUTTON_A)
+                                true
+                            }
+                            Key.ButtonB -> {
+                                sendKeyAction(event.type, KeyEvent.KEYCODE_BUTTON_B)
+                                true
+                            }
+                            Key.ButtonX -> {
+                                sendKeyAction(event.type, KeyEvent.KEYCODE_BUTTON_X)
+                                true
+                            }
+                            Key.ButtonY -> {
+                                sendKeyAction(event.type, KeyEvent.KEYCODE_BUTTON_Y)
+                                true
+                            }
+                            Key.ButtonSelect -> {
+                                sendKeyAction(event.type, KeyEvent.KEYCODE_BUTTON_SELECT)
+                                true
+                            }
+                            Key.ButtonStart -> {
+                                sendKeyAction(event.type, KeyEvent.KEYCODE_BUTTON_START)
+                                true
+                            }
+
+                            else -> false
+                        }
+                    })
+                if (eState.value == EmuState.STOPPED || eState.value == EmuState.RENDER_UNSUPPORTED || eState.value == EmuState.EMULATOR_UNSUPPORTED) {
+                    Box(Modifier
+                        .fillMaxSize()
+                        .background(Colors.surface.value)) {
+                        if (eState.value == EmuState.EMULATOR_UNSUPPORTED) {
+                            Box(Modifier.align(Alignment.Center)) {
+                                Column {
+                                    Image(LineAwesomeIcons.Android, "",
+                                        colorFilter = ColorFilter.tint(Colors.pasx2_blue),
+                                        modifier = Modifier
+                                            .size(150.dp)
+                                            .align(Alignment.CenterHorizontally)
+                                    )
+                                    Text(
+                                        "Android Emulator is not supported", fontSize = 22.sp, color = Colors.pasx2_blue,
+                                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                                    )
+                                    Text(
+                                        "Please use a physical device", fontSize = 22.sp, color = Colors.pasx2_blue,
+                                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                if (eState.value == EmuState.RUNNING) {
+                    Text("Hello Overlay!", color = Color.Blue)
                 }
             }
         }

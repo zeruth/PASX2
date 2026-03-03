@@ -4,5 +4,6 @@ enum class EmuState {
     STOPPED,
     RUNNING,
     PAUSED,
-    GL_UNSUPPORTED
+    EMULATOR_UNSUPPORTED,
+    RENDER_UNSUPPORTED
 }

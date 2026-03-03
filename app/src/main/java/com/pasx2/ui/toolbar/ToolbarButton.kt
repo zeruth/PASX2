@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.size
@@ -16,15 +17,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.pasx2.ext.ModifierExt.onPress
+import com.pasx2.ui.Colors
 import com.pasx2.ui.ToolbarImpl
 
 open class ToolbarButton {
     open var icon = mutableStateOf<ImageVector?>(null)
     open var drawerSize = mutableIntStateOf(200)
 
-    var background = mutableStateOf(Color.Companion.Cyan)
+    open var background = mutableStateOf(Colors.pasx2_blue)
     var expanded = mutableStateOf(false)
 
     @OptIn(ExperimentalFoundationApi::class)

@@ -4,11 +4,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 
 object Colors {
+    val pasx2_blue = Color(0xFF0033CC)
+
     val bg900 = Color(0x263238)
     val surfaceColor = Color(0xFF272525)
     val surfaceDarkColor = Color(0xFF1B1A1A)
     val surfaceDarkerColor = Color(0xFF111010)
-    val secondaryColor = Color(0x0ff00ffe0)
+    val secondaryColor = pasx2_blue
     val secondarySurfaceColor = Color(0xff292828)
 
     val surface = mutableStateOf(surfaceColor)
@@ -16,6 +18,7 @@ object Colors {
     val surfaceDarker = mutableStateOf(surfaceDarkerColor)
     val secondary = mutableStateOf(secondaryColor)
     val secondarySurface = mutableStateOf(secondarySurfaceColor)
+
 
     val green = Color(0xFF00ff1a)
     val purple = Color(0xff7e00e1)

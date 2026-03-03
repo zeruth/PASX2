@@ -12,7 +12,7 @@ import com.pasx2.EmuState
 import com.pasx2.Main
 
 object WindowImpl {
-    val toolbarVisible = mutableStateOf(false)
+    val toolbarVisible = mutableStateOf(true)
     @Composable
     fun Window(content: @Composable () -> Unit) {
         //Container
