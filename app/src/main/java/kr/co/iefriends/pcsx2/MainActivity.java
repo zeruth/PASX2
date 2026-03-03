@@ -54,8 +54,8 @@ public class MainActivity extends AppCompatActivity {
         Initialize();
 
         makeButtonTouch();
-
-        setSurfaceView(new SDLSurface(this));
+/*
+        setSurfaceView(new SDLSurface(this));*/
     }
 
     // Buttons
@@ -235,9 +235,9 @@ public class MainActivity extends AppCompatActivity {
                 fl_board.removeAllViews();
             }
             ////
-            if (p_value instanceof SDLSurface) {
+/*            if (p_value instanceof SDLSurface) {
                 fl_board.addView((SDLSurface) p_value);
-            }
+            }*/
         }
     }
 

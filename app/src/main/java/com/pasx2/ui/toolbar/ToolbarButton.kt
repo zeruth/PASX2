@@ -3,6 +3,7 @@ package com.pasx2.ui.toolbar
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.size
@@ -30,9 +31,9 @@ open class ToolbarButton {
     @Composable
     fun Button() {
         Box(
-            Modifier.Companion.clip(RoundedCornerShape(4.dp)).size(34.dp)
+            Modifier.clip(RoundedCornerShape(4.dp)).size(34.dp)
                 .background(background.value)
-                .onPress { action() }) {
+                .clickable { action() }) {
             Content()
         }
     }
@@ -40,8 +41,8 @@ open class ToolbarButton {
     @Composable
     open fun BoxScope.Content() {
         Box(
-            Modifier.size(30.dp).background(Color.Companion.Transparent)
-                .align(Alignment.Companion.Center)
+            Modifier.size(30.dp).background(Color.Transparent)
+                .align(Alignment.Center)
         ) {
             Icon()
         }
@@ -50,14 +51,16 @@ open class ToolbarButton {
     @Composable
     fun BoxScope.Icon() {
         Box(
-            Modifier.background(Color.Companion.Transparent)
-                .align(Alignment.Companion.Center)
+            Modifier.background(Color.Transparent)
+                .align(Alignment.Center)
         ) {
             icon.value?.let {
                 Image(it, "")
             }
         }
     }
+
+    open fun isVisible() = true
 
     open fun action() {
         if (!expanded.value) {

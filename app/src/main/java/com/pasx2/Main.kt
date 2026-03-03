@@ -1,8 +1,11 @@
 package com.pasx2
 
+import android.app.ActivityManager
 import android.content.Context
 import android.os.Bundle
 import android.os.Process
+import android.view.SurfaceHolder
+import android.view.SurfaceView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -19,22 +22,36 @@ import com.pasx2.ui.WindowImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kr.co.iefriends.pcsx2.MainActivity
 import kr.co.iefriends.pcsx2.NativeApp
 import kr.co.iefriends.pcsx2.SDLControllerManager
-import kr.co.iefriends.pcsx2.SDLSurface
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.Executors
+
+class SurfaceCallbacks(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
+    init {
+        holder.addCallback(this)
+    }
+    override fun surfaceCreated(holder: SurfaceHolder) {}
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        NativeApp.onNativeSurfaceChanged(holder.surface, width, height)
+        Main.start()
+    }
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        NativeApp.onNativeSurfaceChanged(null, 0, 0)
+    }
+}
 
 class Main: ComponentActivity() {
     companion object {
         private val eDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
         private val eScope = CoroutineScope(eDispatcher + SupervisorJob())
 
-        val surface = mutableStateOf<SDLSurface?>(null)
+        val surface = mutableStateOf<SurfaceView?>(null)
+
+        val eState = mutableStateOf(EmuState.STOPPED)
 
         private var m_szGamefile = ""
 
@@ -44,9 +61,49 @@ class Main: ComponentActivity() {
             }
         }
 
-        fun startEmuThread() {
+        fun start() {
             invoke {
                 NativeApp.runVMThread(m_szGamefile)
+                eState.value = EmuState.RUNNING
+            }
+        }
+
+        fun pause() {
+            invoke {
+                NativeApp.pause()
+                eState.value = EmuState.PAUSED
+            }
+        }
+
+        fun resume() {
+            invoke {
+                NativeApp.resume()
+                eState.value = EmuState.RUNNING
+            }
+        }
+
+        fun stop() {
+            invoke {
+                NativeApp.shutdown()
+                eState.value = EmuState.STOPPED
+            }
+        }
+
+        fun renderOpenGL() {
+            invoke {
+                NativeApp.renderGpu(12)
+            }
+        }
+
+        fun renderVulkan() {
+            invoke {
+                NativeApp.renderGpu(14)
+            }
+        }
+
+        fun renderSoftware() {
+            invoke {
+                NativeApp.renderGpu(13)
             }
         }
 
@@ -69,6 +126,12 @@ class Main: ComponentActivity() {
             } catch (ignored: IOException) {
             }
         }
+
+        fun getSupportedGLESVersion(context: Context): Double {
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val info = am.deviceConfigurationInfo
+            return info.glEsVersion.toDouble()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,13 +143,31 @@ class Main: ComponentActivity() {
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
 
+        SurfaceCallbacks(this)
+
        // Default resources
         copyAssetAll(applicationContext, "bios");
         copyAssetAll(applicationContext, "resources");
 
         invoke {
-            Initialize()
-            surface.value = SDLSurface(this)
+            NativeApp.initializeOnce(applicationContext)
+
+            // Set up JNI
+            SDLControllerManager.nativeSetupJNI()
+
+            // Initialize state
+            SDLControllerManager.initialize()
+        }
+
+
+
+        val glVersion = getSupportedGLESVersion(this)
+
+        if (glVersion < 3.2) {
+            println("ERROR: GL VERSION: $glVersion")
+            //renderSoftware()
+/*            eState.value = EmuState.GL_UNSUPPORTED
+            return*/
         }
 
         setContent {
@@ -94,9 +175,9 @@ class Main: ComponentActivity() {
                 Box(Modifier
                     .fillMaxSize()
                     .background(Colors.surface.value))
-                surface.value?.let { s ->
+                surface.value?.let { surfaceView ->
                     AndroidView(factory = {
-                        s
+                        surfaceView
                     }, modifier = Modifier.fillMaxSize())
                 }
             }
@@ -104,12 +185,14 @@ class Main: ComponentActivity() {
     }
 
     override fun onPause() {
-        NativeApp.pause()
+        if (eState.value == EmuState.RUNNING)
+            NativeApp.pause()
         super.onPause()
     }
 
     override fun onResume() {
-        NativeApp.resume()
+        if (eState.value == EmuState.PAUSED)
+            NativeApp.resume()
         super.onResume()
     }
 
@@ -119,15 +202,5 @@ class Main: ComponentActivity() {
 
         val appPid = Process.myPid()
         Process.killProcess(appPid)
-    }
-
-    fun Initialize() {
-        NativeApp.initializeOnce(applicationContext)
-
-        // Set up JNI
-        SDLControllerManager.nativeSetupJNI()
-
-        // Initialize state
-        SDLControllerManager.initialize()
     }
 }
