@@ -250,9 +250,26 @@ Java_kr_co_iefriends_pcsx2_NativeApp_renderPreloading(JNIEnv *env, jclass clazz,
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_kr_co_iefriends_pcsx2_NativeApp_renderGpu(JNIEnv *env, jclass clazz,
-                                               jint p_value) {
-    EmuConfig.GS.Renderer = static_cast<GSRendererType>(p_value);
+Java_kr_co_iefriends_pcsx2_NativeApp_renderSoftware(JNIEnv *env, jclass clazz) {
+    EmuConfig.GS.Renderer = GSRendererType::SW;
+    if(MTGS::IsOpen()) {
+        MTGS::ApplySettings();
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_kr_co_iefriends_pcsx2_NativeApp_renderOpenGL(JNIEnv *env, jclass clazz) {
+    EmuConfig.GS.Renderer = GSRendererType::OGL;
+    if(MTGS::IsOpen()) {
+        MTGS::ApplySettings();
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_kr_co_iefriends_pcsx2_NativeApp_renderVulkan(JNIEnv *env, jclass clazz) {
+    EmuConfig.GS.Renderer = GSRendererType::VK;
     if(MTGS::IsOpen()) {
         MTGS::ApplySettings();
     }

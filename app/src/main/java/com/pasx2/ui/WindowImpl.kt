@@ -8,9 +8,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.pasx2.EmuState
+import com.pasx2.Main
 
 object WindowImpl {
-    val toolbarVisible = mutableStateOf(false)
+    val toolbarVisible = mutableStateOf(true)
     @Composable
     fun Window(content: @Composable () -> Unit) {
         //Container
@@ -21,7 +23,7 @@ object WindowImpl {
                 Box(Modifier.weight(1f).background(Color.Transparent)) {
                     content.invoke()
                 }
-                if (toolbarVisible.value)
+                if (Main.eState.value != EmuState.RUNNING || toolbarVisible.value)
                     ToolbarImpl.Toolbar()
             }
         }
