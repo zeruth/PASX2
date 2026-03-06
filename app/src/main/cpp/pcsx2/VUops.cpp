@@ -924,6 +924,8 @@ static __fi void _vuCLIP(VURegs* VU)
 	VU->clipflag = VU->clipflag & 0xFFFFFF;
 }
 
+void vuCLIP_interp(VURegs* VU) { _vuCLIP(VU); }
+
 /******************************/
 /*   VU Lower instructions    */
 /******************************/
